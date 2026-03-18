@@ -1,15 +1,48 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import pandas as pd
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+REQUIRED_FILES = [
+    "water_quality_training_dataset.csv",
+    "landsat_features_training.csv",
+    "terraclimate_features_training.csv",
+    "submission_template.csv",
+    "landsat_features_validation.csv",
+    "terraclimate_features_validation.csv",
+]
+
+
+def _candidate_data_roots() -> list[Path]:
+    env_data_dir = os.environ.get("EY_WATER_QUALITY_DATA_DIR")
+    candidates = [
+        PROJECT_ROOT,
+        PROJECT_ROOT.parent / "Snowflake Notebooks Package",
+    ]
+    if env_data_dir:
+        candidates.insert(0, Path(env_data_dir).expanduser())
+    return candidates
+
+
+def resolve_data_root() -> Path:
+    for candidate in _candidate_data_roots():
+        if all((candidate / name).exists() for name in REQUIRED_FILES):
+            return candidate
+
+    searched = "\n".join(f"- {path}" for path in _candidate_data_roots())
+    raise FileNotFoundError(
+        "Could not find the required CSV files. Checked:\n"
+        f"{searched}\n\n"
+        "Set EY_WATER_QUALITY_DATA_DIR to the folder containing the challenge CSV files."
+    )
 
 
 def read_csv(name: str) -> pd.DataFrame:
-    return pd.read_csv(PROJECT_ROOT / name)
+    return pd.read_csv(resolve_data_root() / name)
 
 
 def parse_sample_date(df: pd.DataFrame) -> pd.DataFrame:
@@ -63,4 +96,3 @@ def build_model_tables() -> tuple[pd.DataFrame, pd.DataFrame]:
     )
 
     return train_full, test_full
-
