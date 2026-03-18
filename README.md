@@ -1,12 +1,25 @@
 # EY Water Quality Challenge
 
-This repository documents my end-to-end approach for the EY water quality prediction challenge. The project combines remote sensing features from Landsat, climate variables from TerraClimate, and geospatial-temporal feature engineering to predict three water quality targets:
+End-to-end machine learning project for predicting water quality indicators using Landsat, TerraClimate, geospatial feature engineering, and ensemble regression models.
+
+This repository documents my approach to the EY water quality prediction challenge. The project combines remote sensing features from Landsat, climate variables from TerraClimate, and geospatial-temporal feature engineering to predict three water quality targets:
 
 - Total Alkalinity
 - Electrical Conductance
 - Dissolved Reactive Phosphorus
 
 The final modeling approach blends `ExtraTreesRegressor` with a quantile-based `HistGradientBoostingRegressor`, with a more aggressive blend for phosphorus to better recover upper-tail behavior.
+
+## Overview
+
+This project focuses on a practical tabular modeling workflow for environmental prediction. Rather than relying on a single off-the-shelf model, I built a target-specific ensemble that combines:
+
+- spectral information from Landsat
+- climate variables from TerraClimate
+- temporal seasonality features
+- lightweight spatial context from coordinate clustering
+
+The final solution was designed to be simple, interpretable, and effective on heterogeneous tabular data with missing values and skewed targets.
 
 ## Project Structure
 
@@ -52,7 +65,7 @@ The workflow uses the following challenge files:
 
 The raw CSV files are intentionally not versioned in GitHub. See [data/README.md](data/README.md) for details.
 
-## Approach
+## Workflow
 
 ### 1. Data Integration
 
@@ -85,7 +98,9 @@ This was especially useful for `Dissolved Reactive Phosphorus`, where underpredi
 
 ## Exploratory Data Analysis
 
-The EDA notebook is in [notebooks/01_eda.ipynb](notebooks/01_eda.ipynb). It covers:
+The EDA notebook is in [notebooks/01_eda.ipynb](notebooks/01_eda.ipynb), and the notebook includes rendered outputs so the visual analysis is visible directly on GitHub.
+
+The EDA focuses on:
 
 - target distributions
 - missing-value profiles
@@ -93,11 +108,57 @@ The EDA notebook is in [notebooks/01_eda.ipynb](notebooks/01_eda.ipynb). It cove
 - feature correlations
 - simple target-vs-feature visual diagnostics
 
+Key observations from EDA:
+
+- `Dissolved Reactive Phosphorus` is more skewed than the other targets, making tail prediction more important.
+- Several remote sensing features contain meaningful missingness, so explicit imputation and missingness flags were important.
+- Sampling locations are geographically structured rather than uniformly distributed, which motivated the `geo_cluster` feature.
+- Feature-target relationships appear nonlinear, which supports using tree-based ensemble models.
+
 You can also generate exportable figures directly with the script:
 
 ```bash
 python src/visualization.py
 ```
+
+## Feature Engineering
+
+To improve predictive performance, I engineered a compact set of temporal, spectral, climate, and spatial features on top of the merged raw inputs.
+
+Main feature groups:
+
+- temporal features: `month`, `dayofyear`, `quarter`
+- cyclical seasonality: `month_sin`, `month_cos`
+- water-related indices: `NDWI_green`, `NDWI_swir`
+- missingness signal: `landsat_missing`
+- transformed climate feature: `pet_log`
+- location-aware feature: `geo_cluster`
+
+The goal was not to maximize feature count, but to add a small number of useful features that reflect seasonality, water-related spectral behavior, missing-data patterns, and geographic structure.
+
+## Modeling Approach
+
+The final solution uses a target-specific blended ensemble.
+
+For each target:
+
+- train an `ExtraTreesRegressor` as the main nonlinear baseline
+- train a quantile `HistGradientBoostingRegressor` for better upper-tail recovery
+- blend the two predictions with target-specific weights
+
+Target-specific blend weights:
+
+- `Total Alkalinity`: `0.12`
+- `Electrical Conductance`: `0.20`
+- `Dissolved Reactive Phosphorus`: `0.35`
+
+Target-specific quantiles:
+
+- `Total Alkalinity`: `0.75`
+- `Electrical Conductance`: `0.80`
+- `Dissolved Reactive Phosphorus`: `0.85`
+
+This setup worked well because `ExtraTrees` handled general nonlinear tabular structure effectively, while the quantile model helped reduce underprediction in higher-value regions.
 
 ## Reproducibility
 
@@ -118,6 +179,13 @@ This writes a submission file to:
 ```text
 outputs/submissions/submission_final_aggressive_phos.csv
 ```
+
+## Repository Highlights
+
+- [notebooks/01_eda.ipynb](notebooks/01_eda.ipynb): EDA with rendered charts and diagnostic visuals
+- [src/train.py](src/train.py): final training and submission-generation pipeline
+- [src/features.py](src/features.py): reusable feature engineering utilities
+- [docs/methodology.md](docs/methodology.md): concise methodology summary
 
 ## Key Takeaways
 
