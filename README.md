@@ -10,6 +10,30 @@ This repository documents my approach to the EY water quality prediction challen
 
 The final modeling approach blends `ExtraTreesRegressor` with a quantile-based `HistGradientBoostingRegressor`, with a more aggressive blend for phosphorus to better recover upper-tail behavior.
 
+## Why This Project Matters
+
+This project shows a full applied machine learning workflow on messy environmental data, from data integration and feature engineering through model design and submission generation.
+
+From a hiring perspective, it demonstrates:
+
+- end-to-end ownership of a real prediction problem
+- practical use of geospatial, temporal, and climate features
+- modeling choices driven by data characteristics instead of generic defaults
+- ensemble design for skewed targets and noisy observations
+- strong fit for applied ML, analytics, and environmental or geospatial data roles
+
+## Recruiter Snapshot
+
+- **Problem:** predict three water quality indicators from satellite, climate, spatial, and date-based features
+- **Data:** Landsat remote sensing features, TerraClimate variables, coordinates, and sampling dates
+- **Approach:** feature engineering plus target-specific ensemble regression
+- **Key modeling choice:** blend `ExtraTreesRegressor` with quantile `HistGradientBoostingRegressor`
+- **Why it stands out:** connects remote sensing style data with practical tabular ML decisions
+
+## Business / Modeling Framing
+
+The dataset is heterogeneous, partially missing, and skewed across targets, especially for phosphorus. Rather than treating this as a one-model benchmark problem, I built a compact ensemble designed to handle nonlinear interactions, missingness, and upper-tail recovery more effectively.
+
 ## Overview
 
 This project focuses on a practical tabular modeling workflow for environmental prediction. Rather than relying on a single off-the-shelf model, I built a target-specific ensemble that combines:
